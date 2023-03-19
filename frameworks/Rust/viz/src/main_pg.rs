@@ -3,7 +3,6 @@ use std::{
     thread::{available_parallelism, spawn},
 };
 
-use nanorand::{Rng, WyRand};
 use viz::{
     header::{HeaderValue, SERVER},
     types::State,
