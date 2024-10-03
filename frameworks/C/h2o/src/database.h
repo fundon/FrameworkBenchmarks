@@ -49,10 +49,10 @@ typedef struct db_query_param_t {
 	on_result_t on_result;
 	void (*on_timeout)(struct db_query_param_t *);
 	const char *command;
-	const char * const *paramValues;
-	const int *paramLengths;
 	const int *paramFormats;
+	const int *paramLengths;
 	const Oid *paramTypes;
+	const char * const *paramValues;
 	size_t nParams;
 	uint_fast32_t flags;
 	int resultFormat;
@@ -60,11 +60,11 @@ typedef struct db_query_param_t {
 
 typedef struct {
 	const struct config_t *config;
-	list_t *conn;
+	queue_t conn;
 	const char *conninfo;
+	h2o_linklist_t *local_messages;
 	h2o_loop_t *loop;
 	const list_t *prepared_statements;
-	h2o_multithread_receiver_t *receiver;
 	// We use a FIFO queue instead of a simpler stack, otherwise the earlier queries may wait
 	// an unbounded amount of time to be executed.
 	queue_t queries;
@@ -80,7 +80,7 @@ void initialize_database_connection_pool(const char *conninfo,
                                          const struct config_t *config,
                                          const list_t *prepared_statements,
                                          h2o_loop_t *loop,
-                                         h2o_multithread_receiver_t *receiver,
+                                         h2o_linklist_t *local_messages,
                                          db_conn_pool_t *pool);
 void remove_prepared_statements(list_t *prepared_statements);
 

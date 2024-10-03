@@ -3,7 +3,6 @@
 #include <cctype>
 #include <charconv>
 
-#include <userver/formats/json/inline.hpp>
 #include <userver/utils/rand.hpp>
 
 namespace userver_techempower::db_helpers {
@@ -27,19 +26,30 @@ int ParseFromQueryVal(std::string_view query_val) {
 
 }  // namespace
 
+userver::storages::postgres::Query CreateNonLoggingQuery(
+    std::string statement) {
+  return userver::storages::postgres::Query{
+      std::move(statement), std::nullopt /* name */,
+      userver::storages::postgres::Query::LogMode::kNameOnly};
+}
+
+void WriteToStream(const WorldTableRow& row,
+                   userver::formats::json::StringBuilder& sb) {
+  userver::formats::json::StringBuilder::ObjectGuard obj{sb};
+
+  sb.Key("id");
+  WriteToStream(row.id, sb);
+
+  sb.Key("randomNumber");
+  WriteToStream(row.random_number, sb);
+}
+
 int GenerateRandomId() {
   return userver::utils::RandRange(1, kMaxWorldRows + 1);
 }
 
 int GenerateRandomValue() {
   return userver::utils::RandRange(1, kMaxWorldRows + 1);
-}
-
-userver::formats::json::Value Serialize(
-    const WorldTableRow& value,
-    userver::formats::serialize::To<userver::formats::json::Value>) {
-  return userver::formats::json::MakeObject("id", value.id, "randomNumber",
-                                            value.random_number);
 }
 
 int ParseParamFromQuery(const userver::server::http::HttpRequest& request,

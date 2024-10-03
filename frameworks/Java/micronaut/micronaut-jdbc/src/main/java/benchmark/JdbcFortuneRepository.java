@@ -30,8 +30,8 @@ public class JdbcFortuneRepository implements FortuneRepository {
             connection.createStatement().execute("CREATE TABLE Fortune (id INTEGER NOT NULL,message VARCHAR(255) NOT NULL);");
             try (PreparedStatement statement = connection.prepareStatement("INSERT INTO fortune VALUES (?, ?);")) {
                 for (Fortune fortune : fortunes) {
-                    statement.setInt(1, fortune.getId());
-                    statement.setString(2, fortune.getMessage());
+                    statement.setInt(1, fortune.id());
+                    statement.setString(2, fortune.message());
                     statement.addBatch();
                 }
                 statement.executeBatch();
@@ -42,7 +42,7 @@ public class JdbcFortuneRepository implements FortuneRepository {
     }
 
     @Override
-    public Collection<Fortune> findAll() {
+    public List<Fortune> findAll() {
         try (Connection connection = dataSource.getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement("SELECT id, message FROM fortune",
                     ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {

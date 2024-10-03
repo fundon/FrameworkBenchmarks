@@ -5,6 +5,9 @@ import {
   getQueriesCount,
   handleError,
   escape,
+  jsonSerializer,
+  worldObjectSerializer,
+  sortByMessage
 } from "./utils.js";
 
 let db;
@@ -13,16 +16,19 @@ if (DATABASE) db = await import(`./database/${DATABASE}.js`);
 
 const webserver = uWebSockets.App();
 
-webserver.get("/plaintext", (response) => {
-  addBenchmarkHeaders(response);
-  response.writeHeader("Content-Type", "text/plain");
-  response.end("Hello, World!");
-});
+uWebSockets._cfg('silent');
+
+webserver.get("/plaintext", new uWebSockets.DeclarativeResponse()
+              .writeHeader("Server", "uWS")
+              .writeHeader("Content-Type", "text/plain")
+              .end("Hello, World!")
+);
 
 webserver.get("/json", (response) => {
   addBenchmarkHeaders(response);
   response.writeHeader("Content-Type", "application/json");
-  response.end(JSON.stringify({ message: "Hello, World!" }));
+  // response.end(JSON.stringify({ message: "Hello, World!" }));
+  response.end(jsonSerializer({ message: "Hello, World!" }));
 });
 
 if (db) {
@@ -32,7 +38,7 @@ if (db) {
     });
 
     try {
-      const rows = await db.find(generateRandomNumber());
+      const row = await db.find(generateRandomNumber());
 
       if (response.aborted) {
         return;
@@ -41,7 +47,8 @@ if (db) {
       response.cork(() => {
         addBenchmarkHeaders(response);
         response.writeHeader("Content-Type", "application/json");
-        response.end(JSON.stringify(rows));
+        // response.end(JSON.stringify(rows));
+        response.end(worldObjectSerializer(row));
       });
     } catch (error) {
       if (response.aborted) {
@@ -86,24 +93,27 @@ if (db) {
     }
   });
 
+  const extra = { id: 0, message: "Additional fortune added at request time." };
+
   webserver.get("/fortunes", async (response) => {
     response.onAborted(() => {
       response.aborted = true;
     });
 
     try {
-      const rows = await db.fortunes();
+      const rows = [extra, ...await db.fortunes()];
 
       if (response.aborted) {
         return;
       }
 
-      rows.push({
-        id: 0,
-        message: "Additional fortune added at request time.",
-      });
+      // rows.push({
+      //   id: 0,
+      //   message: "Additional fortune added at request time.",
+      // });
 
-      rows.sort((a, b) => (a.message < b.message) ? -1 : 1);
+      // rows.sort((a, b) => (a.message < b.message) ? -1 : 1);
+      sortByMessage(rows)
 
       const n = rows.length
 
@@ -141,10 +151,6 @@ if (db) {
       }
 
       const worldObjects = await Promise.all(databaseJobs);
-
-      if (response.aborted) {
-        return;
-      }
 
       for (let i = 0; i < queriesCount; i++) {
         worldObjects[i].randomNumber = generateRandomNumber();

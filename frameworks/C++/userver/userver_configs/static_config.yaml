@@ -1,8 +1,7 @@
 # yaml
 components_manager:
     event_thread_pool:
-        threads: 5
-        dedicated_timer_threads: 1
+        threads: 8
     coro_pool:
         initial_size: 10000              # Preallocate 10000 coroutines at startup.
         max_size: 300000                 # Do not keep more than 300000 preallocated coroutines.
@@ -12,12 +11,12 @@ components_manager:
 
         main-task-processor:            # Make a task processor for CPU-bound couroutine tasks.
             thread_name: main-worker    # OS will show the threads of this task processor with 'main-worker' prefix.
-            worker_threads: 23
+            worker_threads: 48
             guess-cpu-limit: true
 
         fs-task-processor:              # Make a separate task processor for filesystem bound tasks.
             thread_name: fs-worker
-            worker_threads: 4
+            worker_threads: 1
 
     default_task_processor: main-task-processor
 
@@ -49,8 +48,8 @@ components_manager:
 
         dynamic-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /app/dynamic_config_fallback.json
+            defaults-path: /app/dynamic_config_fallback.json
+            fs-task-processor: fs-task-processor
 
         testsuite-support:
 
@@ -82,6 +81,8 @@ components_manager:
             max_pool_size: 260
             max_queue_size: 512
             connecting_limit: 15
+            ignore_unused_query_params: true
+            connlimit_mode: manual
 
         single-query-handler:
             path: /db
@@ -119,10 +120,4 @@ components_manager:
             method: GET
             decompress_request: false
             task_processor: main-task-processor
-
-userver_experiments:
- # please note that this doesn't actually fully enable pipelining (which is forbidden by TFB rules):
- # all it does is it pipelines first BEGIN, SELECT SET_CONFIG, <first execute> of a transaction, all other
- # operations are still performed with a round-trip to a server (basically every pipeline contains a single operation).
- - pg-connection-pipeline-enabled
 

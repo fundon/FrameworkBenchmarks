@@ -7,7 +7,7 @@ package org.redkalex.benchmark;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.IntStream;
+import java.util.stream.*;
 import org.redkale.annotation.*;
 import org.redkale.net.http.*;
 import org.redkale.service.AbstractService;
@@ -43,9 +43,7 @@ public class BenchmarkService extends AbstractService {
 
     @RestMapping(auth = false)
     public CompletableFuture<List<World>> queries(int q) {
-        int size = Math.min(500, Math.max(1, q));
-        IntStream ids = ThreadLocalRandom.current().ints(size, 1, 10001);
-        return source.findsListAsync(World.class, ids.boxed());
+        return source.findsListAsync(World.class, random(q));
     }
 
     @RestMapping(auth = false)
@@ -54,8 +52,8 @@ public class BenchmarkService extends AbstractService {
         IntStream ids = ThreadLocalRandom.current().ints(size, 1, 10001);
         int[] newNumbers = ThreadLocalRandom.current().ints(size, 1, 10001).toArray();
         return source.findsListAsync(World.class, ids.boxed())
-            .thenCompose(words -> source.updateAsync(World.updateNewNumbers(words, newNumbers))
-            .thenApply(v -> words));
+                .thenCompose(words -> source.updateAsync(World.updateNewNumbers(words, newNumbers))
+                        .thenApply(v -> words));
     }
 
     @RestMapping(auth = false)
@@ -69,8 +67,11 @@ public class BenchmarkService extends AbstractService {
 
     @RestMapping(name = "cached-worlds", auth = false)
     public CachedWorld[] cachedWorlds(int q) {
+        return source.finds(CachedWorld.class, random(q));
+    }
+
+    private Stream<Integer> random(int q) {
         int size = Math.min(500, Math.max(1, q));
-        IntStream ids = ThreadLocalRandom.current().ints(size, 1, 10001);
-        return source.finds(CachedWorld.class, ids.boxed());
+        return ThreadLocalRandom.current().ints(size, 1, 10001).boxed();
     }
 }

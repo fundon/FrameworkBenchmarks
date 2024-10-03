@@ -6,9 +6,9 @@ use std::{
 use viz::{
     header::{HeaderValue, SERVER},
     types::State,
-    Request, RequestExt, Response, ResponseExt, Result, Router, ServiceMaker,
+    Request, RequestExt, Response, ResponseExt, Result, Router,
 };
-use yarte::ywrite_html;
+use yarte::Template;
 
 mod db_pg;
 mod models;
@@ -16,6 +16,12 @@ mod server;
 mod utils;
 
 use db_pg::{get_conn, PgConnection};
+
+#[derive(Template)]
+#[template(path = "fortune.hbs")]
+pub struct FortunesTemplate {
+    pub fortunes: Vec<models::Fortune>,
+}
 
 const DB_URL: &str =
     "postgres://benchmarkdbuser:benchmarkdbpass@tfb-database/hello_world";
@@ -36,8 +42,9 @@ async fn fortunes(req: Request) -> Result<Response> {
 
     let fortunes = conn.tell_fortune().await?;
 
-    let mut buf = String::with_capacity(2048);
-    ywrite_html!(buf, "{{> fortune }}");
+    let buf = FortunesTemplate { fortunes }
+        .call()
+        .expect("error rendering template");
 
     let mut res = Response::html(buf);
     res.headers_mut()
@@ -46,8 +53,8 @@ async fn fortunes(req: Request) -> Result<Response> {
 }
 
 async fn queries(req: Request) -> Result<Response> {
-    let count = utils::get_query_param(req.query_string());
     let conn = get_conn(req.state::<Arc<PgConnection>>())?;
+    let count = utils::get_query_param(req.query_string());
 
     let worlds = conn.get_worlds(count).await?;
 
@@ -58,8 +65,8 @@ async fn queries(req: Request) -> Result<Response> {
 }
 
 async fn updates(req: Request) -> Result<Response> {
-    let count = utils::get_query_param(req.query_string());
     let conn = get_conn(req.state::<Arc<PgConnection>>())?;
+    let count = utils::get_query_param(req.query_string());
 
     let worlds = conn.update(count).await?;
 
@@ -98,8 +105,5 @@ async fn serve() {
         .get("/updates", updates)
         .with(State::new(conn));
 
-    server::builder()
-        .serve(ServiceMaker::from(app))
-        .await
-        .unwrap()
+    server::serve(app).await.unwrap()
 }
