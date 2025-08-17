@@ -1,6 +1,6 @@
-FROM phpswoole/swoole:5.1.3-php8.3
+FROM phpswoole/swoole:php8.0
 
-RUN docker-php-ext-install pcntl opcache curl > /dev/null
+RUN docker-php-ext-install pcntl curl > /dev/null
 
 RUN echo "opcache.enable_cli=1" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 RUN echo "opcache.jit=1205" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini

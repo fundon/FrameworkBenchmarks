@@ -13,15 +13,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.html.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.util.concurrent.ThreadLocalRandom
 
 @Serializable
@@ -67,7 +69,7 @@ enum class ExposedMode {
 
 fun main(args: Array<String>) {
     val exposedMode = valueOf(args.first())
-    embeddedServer(Netty, port = 8080) { module(exposedMode) }.start(wait = true)
+    embeddedServer(Netty, port = 9090) { module(exposedMode) }.start(wait = true)
 }
 
 fun Application.module(exposedMode: ExposedMode) {
@@ -82,7 +84,7 @@ fun Application.module(exposedMode: ExposedMode) {
 
     routing {
         fun selectWorldsWithIdQuery(id: Int) =
-            WorldTable.slice(WorldTable.id, WorldTable.randomNumber).select(WorldTable.id eq id)
+            WorldTable.select(WorldTable.id, WorldTable.randomNumber).where(WorldTable.id eq id)
 
         fun ResultRow.toWorld() =
             World(this[WorldTable.id].value, this[WorldTable.randomNumber])
@@ -129,7 +131,7 @@ fun Application.module(exposedMode: ExposedMode) {
         get("/fortunes") {
             val result = withDatabaseContextAndTransaction {
                 when (exposedMode) {
-                    Dsl -> FortuneTable.slice(FortuneTable.id, FortuneTable.message).selectAll()
+                    Dsl -> FortuneTable.select(FortuneTable.id, FortuneTable.message)
                         .asSequence().map { it.toFortune() }
 
                     Dao -> FortuneDao.all().asSequence().map { it.toFortune() }

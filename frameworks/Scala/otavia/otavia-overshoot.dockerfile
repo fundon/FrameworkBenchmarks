@@ -1,7 +1,8 @@
-FROM nightscape/scala-mill:eclipse-temurin-17.0.8.1_1-jdk-focal_0.11.6_3.3.0
+FROM nightscape/scala-mill:eclipse-temurin-21.0.6_7-jdk-jammy_0.12.10
 WORKDIR /otavia
 COPY benchmark benchmark
 COPY build.sc build.sc
+COPY .mill-version .mill-version
 ENV COURSIER_REPOSITORIES=ivy2Local|central
 RUN mill benchmark.assembly
 
@@ -9,6 +10,8 @@ EXPOSE 8080
 
 CMD java -server \
     -Dcc.otavia.actor.worker.size=64 \
+    -Dcc.otavia.buffer.page.size=8 \
+    -Dio.netty5.noKeySetOptimization=true \
     -jar \
     out/benchmark/assembly.dest/out.jar \
     jdbc:postgresql://tfb-database:5432/hello_world \

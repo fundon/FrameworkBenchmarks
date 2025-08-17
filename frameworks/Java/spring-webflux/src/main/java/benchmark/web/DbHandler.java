@@ -1,8 +1,9 @@
 package benchmark.web;
 
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
+import benchmark.Utils;
 import benchmark.model.Fortune;
 import benchmark.model.World;
 import benchmark.repository.DbRepository;
@@ -29,7 +30,7 @@ public class DbHandler {
     }
 
     public Mono<ServerResponse> db(ServerRequest request) {
-        int id = randomWorldNumber();
+        int id = Utils.randomWorldNumber();
         Mono<World> world = dbRepository.getWorld(id)
                 .switchIfEmpty(Mono.error(new Exception("No World found with Id: " + id)));
 
@@ -41,8 +42,8 @@ public class DbHandler {
     public Mono<ServerResponse> queries(ServerRequest request) {
         int queries = parseQueryCount(request.queryParams().getFirst("queries"));
 
-        Mono<List<World>> worlds = Flux.range(0, queries)
-                .flatMap(i -> dbRepository.getWorld(randomWorldNumber()))
+        Mono<List<World>> worlds = Flux.fromStream(Utils.randomWorldNumbers().limit(queries).boxed())
+                .flatMap(dbRepository::getWorld)
                 .collectList();
 
         return ServerResponse.ok()
@@ -67,9 +68,17 @@ public class DbHandler {
     public Mono<ServerResponse> updates(ServerRequest request) {
         int queries = parseQueryCount(request.queryParams().getFirst("queries"));
 
-        Mono<List<World>> worlds = Flux.range(0, queries)
-                .flatMap(i -> dbRepository.findAndUpdateWorld(randomWorldNumber(), randomWorldNumber()))
-                .collectList();
+        Mono<List<World>> worlds = Flux.fromStream(Utils.randomWorldNumbers().limit(queries).boxed())
+                .flatMap(id -> dbRepository.getWorld(id).map(world -> {
+                    int randomNumber;
+                    do {
+                        randomNumber = Utils.randomWorldNumber();
+                    } while (randomNumber == world.randomnumber);
+                    world.randomnumber = randomNumber;
+                    return world;
+                }))
+                .collectSortedList(Comparator.comparingInt(w -> w.id))
+                .flatMap(list -> dbRepository.updateWorlds(list).thenReturn(list));
 
         return ServerResponse.ok()
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -87,7 +96,4 @@ public class DbHandler {
                                 .bodyValue(JStachio.render(new Fortunes(fortunes))));
     }
 
-    private static int randomWorldNumber() {
-        return 1 + ThreadLocalRandom.current().nextInt(10000);
-    }
 }

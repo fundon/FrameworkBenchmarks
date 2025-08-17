@@ -27,9 +27,9 @@ RUN apt-get -yqq update && \
       pkg-config \
       rsync \
       ruby \
-      systemtap-sdt-dev && \
+      systemtap-sdt-dev > /dev/null && \
     curl -LSs "https://github.com/h2o/h2o/archive/${H2O_VERSION}.tar.gz" | \
-      tar --strip-components=1 -xz && \
+      tar --strip-components=1 -xz > /dev/null && \
     cmake \
       -B build \
       -DCMAKE_AR=/usr/bin/gcc-ar \
@@ -38,24 +38,24 @@ RUN apt-get -yqq update && \
       -DCMAKE_RANLIB=/usr/bin/gcc-ranlib \
       -DWITH_MRUBY=on \
       -G Ninja \
-      -S . && \
-    cmake --build build -j && \
-    cmake --install build
+      -S .  > /dev/null && \
+    cmake --build build -j > /dev/null && \
+    cmake --install build  > /dev/null
 
 FROM "ubuntu:${UBUNTU_VERSION}"
 
-ARG PHP_VERSION=8.3
+ARG PHP_VERSION=8.4
 
 ENV TZ=America/Los_Angeles
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get -yqq update && \
+RUN apt-get -yqq update  > /dev/null && \
     apt-get -yqq install \
       apt-utils \
-      software-properties-common && \
+      software-properties-common  > /dev/null && \
     LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php && \
-    apt-get -yqq update && \
-    apt-get -yqq install \
+    apt-get -yqq update  > /dev/null && \
+    apt-get -yqq install > /dev/null \
       "php${PHP_VERSION}" \
       "php${PHP_VERSION}-cli" \
       "php${PHP_VERSION}-common" \
@@ -75,5 +75,5 @@ ARG TFB_TEST_DATABASE
 ARG TFB_TEST_NAME
 
 CMD sed -i "s/num-threads: x/num-threads: $((2 * $(nproc)))/g" /opt/h2o/etc/h2o.conf && \
-    service php8.3-fpm start && \
+    service php8.4-fpm start && \
     /opt/h2o/bin/h2o -c /opt/h2o/etc/h2o.conf

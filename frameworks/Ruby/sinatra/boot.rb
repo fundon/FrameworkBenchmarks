@@ -1,46 +1,29 @@
 # frozen_string_literal: true
 require 'bundler/setup'
 require 'time'
-require 'oj'
 
 MAX_PK = 10_000
 ID_RANGE = (1..MAX_PK).freeze
 ALL_IDS = ID_RANGE.to_a
 QUERIES_MIN = 1
 QUERIES_MAX = 500
-
-SERVER_STRING =
-  if defined?(PhusionPassenger)
-    [
-      PhusionPassenger::SharedConstants::SERVER_TOKEN_NAME,
-      PhusionPassenger::VERSION_STRING
-    ].join('/').freeze
-  elsif defined?(Puma)
-    Puma::Const::PUMA_SERVER_STRING
-  elsif defined?(Unicorn)
-    Unicorn::HttpParser::DEFAULTS['SERVER_SOFTWARE']
-  end
+SERVER_STRING = "Sinatra"
 
 Bundler.require(:default) # Load core modules
-
-Oj.mimic_JSON
 
 def connect(dbtype)
   Bundler.require(dbtype) # Load database-specific modules
 
   opts = {
-    :adapter=>(dbtype == :mysql ? 'mysql2' : 'postgresql'),
-    :username=>'benchmarkdbuser',
-    :password=>'benchmarkdbpass',
-    :host=>'tfb-database',
-    :database=>'hello_world'
+    adapter: (dbtype == :mysql ? 'mysql2' : 'postgresql'),
+    username: 'benchmarkdbuser',
+    password: 'benchmarkdbpass',
+    host: 'tfb-database',
+    database: 'hello_world'
   }
 
   # Determine threading/thread pool size and timeout
-  if defined?(JRUBY_VERSION)
-    opts[:pool] = (2 * Math.log(Integer(ENV.fetch('MAX_CONCURRENCY')))).floor
-    opts[:checkout_timeout] = 10
-  elsif defined?(Puma) && (threads = Puma.cli_config.options.fetch(:max_threads)) > 1
+  if defined?(Puma) && (threads = Puma.cli_config.options.fetch(:max_threads)) > 1
     opts[:pool] = (2 * Math.log(threads)).floor
     opts[:checkout_timeout] = 10
   else
