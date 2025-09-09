@@ -1,4 +1,4 @@
-ARG UBUNTU_VERSION=24.04
+ARG UBUNTU_VERSION=25.10
 
 ARG H2O_PREFIX=/opt/h2o
 
@@ -33,7 +33,7 @@ RUN apt-get -yqq update && \
     cmake \
       -B build \
       -DCMAKE_AR=/usr/bin/gcc-ar \
-      -DCMAKE_C_FLAGS="-flto -march=native -mtune=native" \
+      -DCMAKE_C_FLAGS="-flto=auto -march=native -mtune=native" \
       -DCMAKE_INSTALL_PREFIX="${H2O_PREFIX}" \
       -DCMAKE_RANLIB=/usr/bin/gcc-ranlib \
       -DWITH_MRUBY=on \
@@ -44,6 +44,8 @@ RUN apt-get -yqq update && \
 
 FROM "ubuntu:${UBUNTU_VERSION}"
 
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get -yqq update && apt-get -yqq upgrade
 ARG H2O_PREFIX
 COPY --from=compile "${H2O_PREFIX}/bin/h2o" "${H2O_PREFIX}/bin/"
 COPY --from=compile "${H2O_PREFIX}/share" "${H2O_PREFIX}/share/"
